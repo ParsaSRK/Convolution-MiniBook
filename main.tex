@@ -1,0 +1,220 @@
+\documentclass[12pt]{report}
+
+% Math Packages
+\usepackage{amsthm, amssymb, mathtools}
+
+% Code
+\usepackage{minted}
+
+\title{Discrete Convolution and Its Fast Computation}
+\author{Parsa Sarkhosh}
+\date{\today}
+
+\renewcommand{\qedsymbol}{$\blacksquare$}
+
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{definition}{Definition}[section]
+\newtheorem{proposition}{Proposition}[section]
+\newtheorem{lemma}{Lemma}[section]
+\newtheorem{property}{Property}[section]
+\theoremstyle{remark}
+\newtheorem{remark}{Remark}[section]
+
+%\setlength{\arraycolsep}{5pt}      % default ~5pt
+\renewcommand{\arraystretch}{2}   % default 1.0
+
+\begin{document}
+
+\maketitle
+\tableofcontents
+
+\newpage
+\section{Introducing Discrete Convolution}
+Discrete convolution combines two sequences to produce a third sequence with useful mathematical properties.
+This operation appears in many areas of computing science,
+from polynomial multiplication
+to applications in signal and image processing.
+Because the naive implementation has quadratic time complexity, \(O(N^2)\), developing faster algorithms for computing convolution has been a major concern.
+
+\subsection{Definition of Convolution}
+
+\begin{definition}[Discrete Convolution]
+\[
+    (f \ast g)[n] \coloneqq \sum_{m=-\infty}^{\infty} f[m]\,g[n-m]
+\]
+\end{definition}
+
+\begin{definition}[Finite Discrete Convolution]
+For sequences 
+\[
+f,g : \{0,1,\dots,N\} \to \mathbb{C} 
+\]
+the convolution is
+\[
+    (f \ast g)[n] \coloneqq \sum_{m=0}^{n} f[m]\,g[n-m],
+    \quad \text{ for } n \in \{0, 1, \dots, N\}.
+\]
+\end{definition}
+\subsection{Properties}
+
+\begin{property}[Algebraic Properties of Convolution]
+For sequences \(f, g, h\) convolution satisfies:
+\begin{align*}
+    f \ast g &= g \ast f && \text{(Commutativity)} \\
+    (f \ast g) \ast h &= f \ast ( g \ast h) && \text{(Associativity)} \\
+    f \ast (g + h) &= (f \ast g)  + (f \ast h) && \text{(Distributivity)}
+\end{align*}
+\end{property}
+
+\begin{definition}[Kronecker Delta]
+\[
+    \delta[n] =
+    \begin{cases}
+        1, &n = 0, \\
+        0, &n \neq 0.
+
+    \end{cases}
+\]
+\end{definition}
+\begin{property}[Identity Element]
+    For any sequence \(f\), convolution with the Kronecker delta leaves \(f\) unchanged
+    \[f \ast \delta = f \]
+\end{property}
+
+\newpage
+\section{Applications of Convolution}
+One may ask why convolution deserves such careful study and why efficient methods for computing it are important. 
+The reason is that convolution arises naturally in a wide variety of mathematical and practical contexts.
+In this chapter we illustrate several situations where convolution emerges as a central equation.
+
+\subsection{Polynomial Multiplication}
+Given two polynomials
+\begin{align*}
+    P(x) = \sum_{k=0}^n p[k] \, x^k &, \quad p[k] \in \mathbb{C} \\
+    Q(x) = \sum_{k=0}^n q[k] \, x^k &, \quad q[k] \in \mathbb{C}
+\end{align*}
+their product \( R(x) = P(x) \cdot Q(x) \) expands as
+\begin{align*}
+    R(x) &= \left(\sum_{i=0}^n p[i] \, x^i \right)
+         \left(\sum_{j=0}^n q[j] \, x^j \right) \\
+         &= \sum_{i=0}^n \sum_{j=0}^n p[i] \, q[j] \, x^{i+j} \\
+         &= \sum_{k=0}^{2n} \left(\sum_{i=0}^k p[i] \, q[k-i] \right) \, x^k \\
+         &= \sum_{k=0}^{2n} (p \ast q)[k] \, x^k \\
+         &= \sum_{k=0}^{2n} r[k] \, x^k
+\end{align*}
+Thus, the coefficients of the product polynomial are exactly the convolution of the coefficient sequences of the factors.
+
+\begin{remark}
+Throughout, we extend the coefficient sequences by zero outside their support:
+\(p[i]=0\) and \(q[j]=0\)for indices outside \(\{0,1,\dots,n\}\). Equivalently, one
+may write the inner sum as \(\sum_{i=\max(0,k-n)}^{\min(k,n)} p[i]\,q[k-i]\).
+\end{remark}
+
+\subsection{Signal and Image Processing}
+Convolution plays a central role in digital signal and image processing. 
+In the 1--dimensional case, the output \(y[n]\) of a linear time-invariant (LTI) system 
+with input signal \(x[n]\) and impulse response \(h[n]\) is given by
+\[
+    y[n] = (x \ast h)[n] = \sum_{m=-\infty}^{\infty} x[m] \, h[n-m].
+\]
+This expresses the idea that the system output is a weighted combination of shifted 
+copies of the input.
+
+In two dimensions, convolution is used to transform images. 
+If \(I(x,y)\) is an image and \(K\) is a kernel (or filter mask), the transformed image is
+\[
+    J(x,y) = (I \ast K)(x,y) = \sum_{i}\sum_{j} I(x-i,y-j) \, K(i,j).
+\]
+By choosing different kernels, one can blur, sharpen, or detect edges in an image. 
+Efficient algorithms such as the FFT are therefore essential in practical signal and image processing applications.
+
+\newpage
+\section{Discrete Fourier Transform}
+The discrete Fourier transform (DFT) provides an alternative representation of a finite sequence in terms of complex exponentials,
+or equivalently, powers of roots of unity. While coefficients \(x[n]\) describe the sequence directly,
+the Fourier transform \(X[k]\) describes how much of exponential pattern is present in the sequence.
+
+The reason we introduce DFT in the study of convolution is that although convolution in the original (coefficients) domain is computationally expensive,
+convolution in the Fourier domain becomes simple multiplication. This fundamental relationship is called the \emph{convolution theorem},
+and it forms the basis of all fast algorithms for computing convolutions,
+such as the FFT and its modular analogue, the NTT.\@
+\subsection{Definition}
+
+Throughout this section, fix \(N \in \mathbb{N}\) and let 
+\[
+    \omega_N = e^{-2\pi i /N}
+\]
+denote a primitive \(N\)-th root of unity in \(\mathbb{C}\).
+We work with zero-indexed sequences of length \(N\):
+\begin{align*}
+    x = (x[0], x[1], \dots, x[N-1]) \in \mathbb{C}^N, \\
+    X = (X[0], X[1], \dots, X[N-1]) \in \mathbb{C}^N.
+\end{align*}
+The sequences \(x\) and \(X\) are related by the discrete Fourier transform.
+
+\begin{definition}[Discrete Fourier Transform]
+    The sequence \(X\) is called the discrete Fourier transform of \(x\) if
+    \[
+        X[k] = \mathcal{F}\{x\} = \sum_{n=0}^{N-1}x[n] \, \omega_N^{kn}, 
+        \quad k = 0, 1, \dots, N-1.
+    \]
+\end{definition}
+
+\begin{definition}[Inverse Discrete Fourier Transform]
+    The sequence \(x\) is called the inverse discrete Fourier transform of \(X\) if
+    \[
+        x[n] = \mathcal{F}^{-1}\{X\} = \frac{1}{N} \sum_{k=0}^{N-1} X[k] \, \omega_N^{-kn},
+        \quad n = 0, 1, \dots, N-1.
+    \]
+\end{definition}
+
+\begin{definition}[Fourier Matrix]
+    The \emph{Fourier transform} of order \(N\) is the \(N \times N\) matrix 
+    with entries
+    \[
+        {(F_N)}_{k,n} = \omega_N^{kn}, \quad 0 \leq k,n < N.
+    \]
+    Explicitly, 
+    \[
+        F_N = 
+        \begin{bmatrix}
+            1 & 1 & 1 & \cdots & 1 \\
+            1 & \omega_N & \omega_N^2 & \cdots & \omega_N^{N-1} \\
+            1 & \omega_N^2 & \omega_N^4 & \cdots & \omega_N^{2(N-1)} \\
+            \vdots & \vdots & \vdots & \ddots & \vdots \\
+            1 & \omega_N^{N-1} & \omega_N^{2(N-1)} & \cdots & \omega_N^{(N-1)(N-1)}
+        \end{bmatrix}
+    \]
+\end{definition}
+
+Fourier matrix is used to represent the transform as matrix equation as below.
+\begin{align*}
+    X = F_N \, x, \quad
+    x = F_N^{-1} \, X = \tfrac{1}{N} F_N^\ast \,X
+\end{align*}
+
+\begin{remark}
+    The Fourier matrix \(F_N\) is a Vandermonde matrix with nodes \( 1, \omega_N, \omega_N^2, \dots, \omega_N^{N-1} \).
+    It satisfies the orthogonality relation
+    \[
+        F_N^\ast F_N = N I_N,
+    \]
+    where \(F_N^\ast\) denotes the conjugate transpose. Consequently,
+    \[
+        F_N^{-1} = \tfrac{1}{N}F_N^\ast.
+    \]
+    This shows that the DFT is unitary transformation up to scaling.
+\end{remark}
+
+\subsection{Application}
+\section{Fast Fourier Transform}
+\subsection{Motivation}
+\subsection{Divide-and-Conquer Idea}
+\subsection{Example}
+\section{Number Theoretic Transform}
+\subsection{Motivation}
+\subsection{Definition}
+\subsection{Application}
+\section{References}
+
+\end{document}
