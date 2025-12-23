@@ -5,6 +5,8 @@
 
 % Code
 \usepackage{minted}
+\usepackage{xcolor}
+
 
 \title{Discrete Convolution and Its Fast Computation}
 \author{Parsa Sarkhosh}
@@ -23,12 +25,36 @@
 %\setlength{\arraycolsep}{5pt}      % default ~5pt
 \renewcommand{\arraystretch}{2}   % default 1.0
 
+% Code style
+\definecolor{codebg}{gray}{0.97}        % Background color
+\definecolor{codelinenum}{gray}{0.55}   % Line number color
+\definecolor{codeframe}{gray}{0.8}      % Frame color
+
+\renewcommand{\theFancyVerbLine}{\textcolor{codelinenum}{\footnotesize\arabic{FancyVerbLine}}}
+
+\newminted[codeblock]{cpp}{
+    fontsize=\small,
+    linenos,
+    numbersep=8pt,
+    frame=single,
+    framerule=0.6pt,
+    rulecolor=\color{codeframe},
+    bgcolor=codebg,
+    xleftmargin=1em,
+    xrightmargin=1em,
+    breaklines,
+    tabsize=4,
+    style=friendly,
+    autogobble
+}
+
 \begin{document}
 
 \maketitle
-\tableofcontents
-
 \newpage
+\tableofcontents
+\newpage
+
 \section{Introducing Discrete Convolution}
 Discrete convolution combines two sequences to produce a third sequence with useful mathematical properties.
 This operation appears in many areas of computing science,
@@ -106,7 +132,7 @@ Thus, the coefficients of the product polynomial are exactly the convolution of 
 
 \begin{remark}
 Throughout, we extend the coefficient sequences by zero outside their support:
-\(p[i]=0\) and \(q[j]=0\)for indices outside \(\{0,1,\dots,n\}\). Equivalently, one
+\(p[i]=0\) and \(q[j]=0\) for indices outside \(\{0,1,\dots,n\}\). Equivalently, one
 may write the inner sum as \(\sum_{i=\max(0,k-n)}^{\min(k,n)} p[i]\,q[k-i]\).
 \end{remark}
 
@@ -207,14 +233,64 @@ Fourier matrix is used to represent the transform as matrix equation as below.
 \end{remark}
 
 \subsection{Application}
+
+\subsection{Implementation}
+
+Here is efficient naive implementation of discrete fourier transform using C++ programming language which has time complexity of $O(N^2)$ and memory complexity of $O(N)$
+\begin{listing}[!htbp]
+\begin{codeblock}
+#include <cmath>
+#include <complex>
+#include <vector>
+
+const double PI = std::acos(-1);
+
+std::vector<std::complex<double>> dft(
+        std::vector<std::complex<double>>& x,
+        bool inverse) {
+    const size_t N{x.size()};
+
+    double angle = (inverse ? 1 : -1) * 2 * PI / N;
+    std::complex<double> w_N{std::polar(1.0, angle)};
+
+    std::vector<std::complex<double>> X(N);
+    std::complex<double> w_N_k(1.0, 0);
+    for (size_t k = 0; k < N; ++k) {
+        std::complex<double> factor(1.0, 0);
+        for (size_t n = 0; n < N; ++n) {
+            X[k] += x[n] * factor;
+            factor *= w_N_k;
+        }
+        w_N_k *= w_N;
+    }
+
+    double N_inv = 1.0 / N;
+
+    if (inverse) {
+        for (auto& element : X) element *= N_inv;
+    }
+
+    return X;
+}
+
+\end{codeblock}
+\caption{Naive Discrete Fourier Transform Implementation}
+\label{lst:naive-dft}
+\end{listing}
+
+\newpage
 \section{Fast Fourier Transform}
 \subsection{Motivation}
-\subsection{Divide-and-Conquer Idea}
-\subsection{Example}
+\subsection{Explanation}
+\subsection{Implementation}
+
+\newpage
 \section{Number Theoretic Transform}
 \subsection{Motivation}
-\subsection{Definition}
-\subsection{Application}
+\subsection{Explanation}
+\subsection{Implementation}
+
+\newpage
 \section{References}
 
 \end{document}
